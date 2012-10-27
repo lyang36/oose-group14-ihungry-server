@@ -3,12 +3,12 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import edu.jhu.cs.oose.fall2012.group14.ihungry.server.frame.DMvisServerOperater;
+import edu.jhu.cs.oose.fall2012.group14.ihungry.database.DBOperator;
+import edu.jhu.cs.oose.fall2012.group14.ihungry.internet.CommunicationProtocol;
+import edu.jhu.cs.oose.fall2012.group14.ihungry.internet.InternetUtilImpl;
 import edu.jhu.cs.oose.fall2012.group14.ihungry.server.frame.MessageReactor;
 import edu.jhu.cs.oose.fall2012.group14.ihungry.server.frame.ServerModel;
-import edu.jhu.pha.idies.lyang.dmvisual.framework.*;
-import edu.jhu.pha.idies.lyang.dmvisual.internet.InternetUtilImpl;
-import edu.jhu.pha.idies.lyang.dmvisual.internet.ServerProtocol;
+
 class doComms implements Runnable {
 	private Socket server;
     private String line,input;
@@ -16,10 +16,9 @@ class doComms implements Runnable {
     InternetUtilImpl internet;
     
 
-    doComms(Socket server, MessageReactor reactor, int thnum) {
+    doComms(Socket server, MessageReactor reactor) {
     	this.server = server;
     	this.reactor = reactor;
-    	this.reactor.setThreadNum(thnum);
     	internet = new InternetUtilImpl();
     	try {
 			internet.setSocket(server);
@@ -31,13 +30,8 @@ class doComms implements Runnable {
     public void run () {
     	input="";
     	try {
-    		line = "";
-    		while(!(line.contains(ServerProtocol.serverDisconnect))){
-    			line = internet.receiveMessage();
-    			input=input + line;
-    			System.out.println("Received "+ line);
-    			reactor.reactToMsg(line, internet);
-    		}
+    		input = internet.receiveMessage();
+    		reactor.reactToMsg(input, internet);
     		server.close();
     	} catch (Exception ioe) {
     		System.out.println("IOException on socket listen: " + ioe);
@@ -49,10 +43,9 @@ class doComms implements Runnable {
 
 public class Server implements ServerModel{
 
-	private static int port=4444, maxConnections=10;
+	private static int port=4444, maxConnections=100;
 	MessageReactor msreactor;
 	int threadNum = 0;
-	DMvisServerOperater visc;
 	
 	
 	/**
@@ -61,7 +54,7 @@ public class Server implements ServerModel{
 	@Override
 	public void run() {
 	    try{
-	      ServerSocket listener = new ServerSocket(port);
+	      ServerSocket listener = new ServerSocket(CommunicationProtocol.SERVER_PORT);
 	      Socket server;
 	      System.out.println("Start Listening...");
 	      
@@ -73,15 +66,15 @@ public class Server implements ServerModel{
 			  }
 			  try {
 				msreactor = msreactor.getClass().newInstance();
-				DMvisServerOperater op = visc.getClass().newInstance();
+				
+				DBOperator op = null;
 				msreactor.setOperater(op);
-				msreactor.setThreadNum(threadNum);
 			} catch (InstantiationException e) {
 				e.printStackTrace();
 			} catch (IllegalAccessException e) {
 				e.printStackTrace();
 			}
-			  doComms conn_c= new doComms(server, msreactor, threadNum);
+			  doComms conn_c= new doComms(server, msreactor);
 			  Thread t = new Thread(conn_c);
 			  t.start();
 			  System.out.println("Connection " + threadNum +" starts...");
@@ -94,16 +87,13 @@ public class Server implements ServerModel{
 
 
 	@Override
-	public void setMessageReactor(MessageReactor msl,
-			DMvisServerOperater visc) {
-		this.msreactor = msl;
-		this.visc = visc;
+	public void setMessageReactor(MessageReactor msl) {
+		msreactor = msl;
 	}
-
-
-	@Override
-	public void setPort(int port) {
-		this.port = port;
-		
+	
+	public static void main(String args[]){
+		Server server = new Server();
+		server.setMessageReactor(new MessageReactorImpl());
+		server.run();
 	}
 }

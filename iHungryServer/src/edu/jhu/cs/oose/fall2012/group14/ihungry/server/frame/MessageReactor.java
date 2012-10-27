@@ -1,6 +1,6 @@
 package edu.jhu.cs.oose.fall2012.group14.ihungry.server.frame;
 
-import java.io.DataOutputStream;
+import edu.jhu.cs.oose.fall2012.group14.ihungry.internet.InternetUtil;
 
 /**
  * listener the messages, and do the correct operation
@@ -16,14 +16,8 @@ public interface MessageReactor {
 	public void reactToMsg(String message, InternetUtil internet);
 	
 	/**
-	 * setting up the thread number of the current thread
-	 * @param num
-	 */
-	public void setThreadNum(int num);
-	
-	/**
-	 * setting up the server operator
+	 * DataBaseOperator is used to operate the database
 	 * @param operater
 	 */
-	public void setOperater(DMvisServerOperater operater);
+	public void setOperater(DataBaseOperater operater);
 }
